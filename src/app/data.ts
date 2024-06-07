@@ -217,3 +217,4 @@ export {
   issuesDict,
   mayoralCandidates,
 };
+export type { Issue };

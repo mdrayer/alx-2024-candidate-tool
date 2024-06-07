@@ -14,9 +14,13 @@ export default async function Home() {
   return (
     <main className={styles.main}>
       <Typography align="center" variant="h1">
-        Alexandria Candidates 2024
+        Alexandria 2024 Candidate Tool
       </Typography>
-      <Typography align="center" variant="body2" p={2}>
+      <Typography align="center" m={2}>
+        A tool to help you figure out who to vote for in the Alexandria 2024
+        Democratic primary election.
+      </Typography>
+      <Typography align="center" variant="body2" mb={2}>
         Data from{' '}
         <a href={waPoArticle} target="_blank">
           &quot;A guide to the 2024 Alexandria Democratic primary election&quot;
@@ -24,23 +28,6 @@ export default async function Home() {
         </a>{' '}
         by Teo Armus in the Washington Post, published on May 4, 2024.
       </Typography>
-
-      {/* <Typography variant="h2">Mayoral Candidates</Typography>
-      <List dense={true}>
-        {mayoralCandidates.map(a => (
-          <ListItem key={a.id}>
-            <Typography component="span">{a.fullName}</Typography>
-          </ListItem>
-        ))}
-      </List>
-      <Typography variant="h2">City Council Candidates</Typography>
-      <List dense={true}>
-        {councilCandidates.map(a => (
-          <ListItem key={a.id}>
-            <Typography component="span">{a.fullName}</Typography>
-          </ListItem>
-        ))}
-      </List> */}
 
       <ScoreTable columns={data.columns} data={data as unknown as CsvRow[]} />
     </main>

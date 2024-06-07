@@ -19,14 +19,20 @@ import {
   Typography,
 } from '@mui/material';
 import { ChangeEvent, createElement, useState } from 'react';
-import { councilCandidates, issuesDict, mayoralCandidates } from './data';
+import styles from './ScoreTable.module.css';
+import {
+  Issue,
+  councilCandidates,
+  issuesDict,
+  mayoralCandidates,
+} from './data';
 import { CsvRow } from './models';
 
 type WeightDict = Record<string, number>;
 
-const WEIGHT_MIN = 0;
+const WEIGHT_MIN = -10;
 const WEIGHT_MAX = 10;
-const ISSUE_COL_MAX_WIDTH = '300px';
+const ISSUE_COL_MAX_WIDTH = 300;
 
 interface ScoreTableProps {
   columns: string[];
@@ -103,13 +109,22 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
       <Typography align="center" variant="h2">
         Weighted Scoring Table
       </Typography>
-      <Typography align="center" p={2}>
-        Description text on how to use the table. Ducimus aliquip luctus mollit
-        est adipiscing nisi integer, quos? Volutpat! Blandit illo! Perferendis
-        corrupti repudiandae, impedit justo corporis, blandit, ipsam.
+      <Typography align="center" m={2} mb={0}>
+        Set the <strong>&quot;yes&quot; response weight</strong> between{' '}
+        {WEIGHT_MIN} and
+        {WEIGHT_MAX} for each issue question, {WEIGHT_MAX} meaning a strong{' '}
+        <strong>yes</strong> and {WEIGHT_MIN} meaning a strong{' '}
+        <strong>no</strong>.
       </Typography>
-      <TableContainer component={Paper} sx={{ marginTop: 2 }}>
-        <Table size="small">
+      <Typography align="center" m={2} mt={0}>
+        Leaving the weight at 0 means that the issue will have no effect on the
+        score.
+      </Typography>
+      <TableContainer
+        component={Paper}
+        sx={{ marginTop: 2, maxHeight: '100vh' }}
+      >
+        <Table size="small" stickyHeader={true}>
           <TableHead>
             <TableRow>
               <TableCell
@@ -151,13 +166,14 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
                     borderLeft: i === 0 ? 1 : undefined,
                     borderRight:
                       i === mayoralCandidates.length - 1 ? 1 : undefined,
+                    top: 38,
                   }}
                 >
                   {m.lastName}
                 </TableCell>
               ))}
               {councilCandidates.map(c => (
-                <TableCell key={c.id} align="center">
+                <TableCell key={c.id} align="center" sx={{ top: 38 }}>
                   {c.lastName}
                 </TableCell>
               ))}
@@ -174,18 +190,14 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
                     sx={{ maxWidth: ISSUE_COL_MAX_WIDTH }}
                   >
                     <Typography>
-                      <Tooltip title={issue.description}>
-                        <IconButton>
-                          <InfoIcon color="info" />
-                        </IconButton>
-                      </Tooltip>
+                      <IssuePopup issue={issue} />
                       {issue.title}
                     </Typography>
                     <Typography fontSize="0.75rem" variant="body2">
                       {issue.question}
                     </Typography>
                   </TableCell>
-                  <TableCell>
+                  <TableCell align="center">
                     <input
                       max={WEIGHT_MAX}
                       min={WEIGHT_MIN}
@@ -214,7 +226,9 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
                           </IconButton>
                         </Tooltip>
                       ) : (
-                        ''
+                        <span className={styles['visually-hidden']}>
+                          {issue.labelNo || 'No'}
+                        </span>
                       )}
                     </TableCell>
                   ))}
@@ -231,12 +245,13 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
               >
                 Score
               </TableCell>
-              {mayoralCandidates.map((a, i) => {
+              {[...mayoralCandidates, ...councilCandidates].map((a, i) => {
                 return (
                   <TableCell
                     key={a.id}
                     align="center"
                     sx={{
+                      // Add borders for mayor cells.
                       borderBottom:
                         i >= 0 && i <= mayoralCandidates.length - 1
                           ? 1
@@ -247,28 +262,10 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
                     }}
                   >
                     {createElement(
-                      scoresDict[a.id] >= mayorHighlightScore
-                        ? 'strong'
-                        : 'span',
-                      {},
-                      calculateCandidateScore(
-                        data.reduce<Record<string, number>>((prev, curr) => {
-                          return {
-                            ...prev,
-                            [curr.issue]: curr[a.id] === '1' ? 1 : 0,
-                          };
-                        }, {}),
-                        weightDict,
-                      ),
-                    )}
-                  </TableCell>
-                );
-              })}
-              {councilCandidates.map(a => {
-                return (
-                  <TableCell key={a.id} align="center">
-                    {createElement(
-                      scoresDict[a.id] >= councilHighlightScore
+                      scoresDict[a.id] >=
+                        (a.type === 'mayor'
+                          ? mayorHighlightScore
+                          : councilHighlightScore)
                         ? 'strong'
                         : 'span',
                       {},
@@ -292,59 +289,65 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
       <Grid container={true} spacing={2} sx={{ marginTop: 2 }}>
         <Grid item={true} sm={6}>
           <Box display="flex" justifyContent="center" alignItems="center">
-            <div>
-              <Typography variant="h3">Mayor Scores</Typography>
-              <List
-                component="ol"
-                sx={{ listStyle: 'decimal', pl: 4 }}
-                dense={true}
-              >
-                {mayoralScores.map(a => {
-                  const text = `${a.fullName} - ${a.score}`;
-                  return (
-                    <ListItem key={a.id} sx={{ display: 'list-item' }}>
-                      <Typography component="span">
-                        {scoresDict[a.id] >= mayorHighlightScore ? (
-                          <strong>{text}</strong>
-                        ) : (
-                          text
-                        )}
-                      </Typography>
-                    </ListItem>
-                  );
-                })}
-              </List>
-            </div>
+            <ScoresDisplay
+              label="Mayor Scores"
+              scores={mayoralScores}
+              scoreThreshold={mayorHighlightScore}
+            />
           </Box>
         </Grid>
         <Grid item={true} sm={6}>
           <Box display="flex" justifyContent="center" alignItems="center">
-            <div>
-              <Typography variant="h3">City Council Scores</Typography>
-              <List
-                component="ol"
-                sx={{ listStyle: 'decimal', pl: 4 }}
-                dense={true}
-              >
-                {councilScores.map(a => {
-                  const text = `${a.fullName} - ${a.score}`;
-                  return (
-                    <ListItem key={a.id} sx={{ display: 'list-item' }}>
-                      <Typography component="span">
-                        {scoresDict[a.id] >= councilHighlightScore ? (
-                          <strong>{text}</strong>
-                        ) : (
-                          text
-                        )}
-                      </Typography>
-                    </ListItem>
-                  );
-                })}
-              </List>
-            </div>
+            <ScoresDisplay
+              label="City Council Scores"
+              scores={councilScores}
+              scoreThreshold={councilHighlightScore}
+            />
           </Box>
         </Grid>
       </Grid>
+    </div>
+  );
+}
+
+interface IssuePopupProps {
+  issue: Issue;
+}
+function IssuePopup({ issue }: IssuePopupProps): JSX.Element {
+  return (
+    <Tooltip title={issue.description}>
+      <IconButton>
+        <InfoIcon color="info" />
+      </IconButton>
+    </Tooltip>
+  );
+}
+
+interface ScoresDisplayProps {
+  label: string;
+  scores: Array<{ id: string; fullName: string; score: number }>;
+  scoreThreshold?: number;
+}
+function ScoresDisplay({
+  label,
+  scores,
+  scoreThreshold = Infinity,
+}: ScoresDisplayProps) {
+  return (
+    <div>
+      <Typography variant="h3">{label}</Typography>
+      <List component="ol" sx={{ listStyle: 'decimal', pl: 4 }} dense={true}>
+        {scores.map(a => {
+          const text = `${a.fullName} - ${a.score}`;
+          return (
+            <ListItem key={a.id} sx={{ display: 'list-item' }}>
+              <Typography component="span">
+                {a.score >= scoreThreshold ? <strong>{text}</strong> : text}
+              </Typography>
+            </ListItem>
+          );
+        })}
+      </List>
     </div>
   );
 }
