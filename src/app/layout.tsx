@@ -2,6 +2,7 @@ import { ThemeProvider } from '@mui/material';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v13-appRouter';
 import type { Metadata } from 'next';
 import theme from '../theme';
+import Footer from './Footer';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -19,7 +20,10 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <AppRouterCacheProvider>
-          <ThemeProvider theme={theme}>{children}</ThemeProvider>
+          <ThemeProvider theme={theme}>
+            {children}
+            <Footer />
+          </ThemeProvider>
         </AppRouterCacheProvider>
       </body>
     </html>

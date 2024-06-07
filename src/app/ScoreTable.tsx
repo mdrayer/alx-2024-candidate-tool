@@ -6,8 +6,6 @@ import {
   Box,
   Grid,
   IconButton,
-  List,
-  ListItem,
   Paper,
   Table,
   TableBody,
@@ -18,7 +16,9 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import clsx from 'clsx';
 import { ChangeEvent, createElement, useState } from 'react';
+import theme from '../theme';
 import styles from './ScoreTable.module.css';
 import {
   Issue,
@@ -104,14 +104,18 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
     ? councilScores[5].score
     : Infinity;
 
+  const totalWeight = Object.values(weightDict).reduce<number>(
+    (prev, curr) => (prev += Math.abs(curr)),
+    0,
+  );
+
   return (
     <div>
       <Typography align="center" variant="h2">
         Weighted Scoring Table
       </Typography>
       <Typography align="center" m={2} mb={0}>
-        Set the <strong>&quot;yes&quot; response weight</strong> between{' '}
-        {WEIGHT_MIN} and
+        Set the <strong>response weight</strong> between {WEIGHT_MIN} and{' '}
         {WEIGHT_MAX} for each issue question, {WEIGHT_MAX} meaning a strong{' '}
         <strong>yes</strong> and {WEIGHT_MIN} meaning a strong{' '}
         <strong>no</strong>.
@@ -270,10 +274,10 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
                         : 'span',
                       {},
                       calculateCandidateScore(
-                        data.reduce<Record<string, number>>((prev, curr) => {
+                        data.reduce<Record<string, string>>((prev, curr) => {
                           return {
                             ...prev,
-                            [curr.issue]: curr[a.id] === '1' ? 1 : 0,
+                            [curr.issue]: curr[a.id],
                           };
                         }, {}),
                         weightDict,
@@ -286,22 +290,25 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
           </TableBody>
         </Table>
       </TableContainer>
+
       <Grid container={true} spacing={2} sx={{ marginTop: 2 }}>
-        <Grid item={true} sm={6}>
+        <Grid item={true} md={6}>
           <Box display="flex" justifyContent="center" alignItems="center">
             <ScoresDisplay
               label="Mayor Scores"
               scores={mayoralScores}
               scoreThreshold={mayorHighlightScore}
+              total={totalWeight}
             />
           </Box>
         </Grid>
-        <Grid item={true} sm={6}>
+        <Grid item={true} md={6}>
           <Box display="flex" justifyContent="center" alignItems="center">
             <ScoresDisplay
               label="City Council Scores"
               scores={councilScores}
               scoreThreshold={councilHighlightScore}
+              total={totalWeight}
             />
           </Box>
         </Grid>
@@ -323,44 +330,112 @@ function IssuePopup({ issue }: IssuePopupProps): JSX.Element {
   );
 }
 
+const BAR_HEIGHT = 30;
+const BAR_WIDTH_MAX = 200;
 interface ScoresDisplayProps {
   label: string;
   scores: Array<{ id: string; fullName: string; score: number }>;
   scoreThreshold?: number;
+  total: number;
 }
 function ScoresDisplay({
   label,
   scores,
   scoreThreshold = Infinity,
+  total,
 }: ScoresDisplayProps) {
   return (
     <div>
-      <Typography variant="h3">{label}</Typography>
-      <List component="ol" sx={{ listStyle: 'decimal', pl: 4 }} dense={true}>
-        {scores.map(a => {
-          const text = `${a.fullName} - ${a.score}`;
-          return (
-            <ListItem key={a.id} sx={{ display: 'list-item' }}>
-              <Typography component="span">
-                {a.score >= scoreThreshold ? <strong>{text}</strong> : text}
-              </Typography>
-            </ListItem>
-          );
-        })}
-      </List>
+      <Typography align="center" variant="h3">
+        {label}
+      </Typography>
+      <Table size="small">
+        <TableBody>
+          {scores.map(a => {
+            const pct = total > 0 ? a.score / total : 0;
+            const isHighlighted = a.score >= scoreThreshold;
+            const barWidth = pct * BAR_WIDTH_MAX;
+            const textIsInside = barWidth > 20;
+            const textX = textIsInside ? barWidth - 4 : barWidth + 4;
+            return (
+              <TableRow key={a.id}>
+                <TableCell
+                  align="right"
+                  sx={{ borderBottom: 'none', width: 200 }}
+                >
+                  <Typography component="span">
+                    {isHighlighted ? <strong>{a.fullName}</strong> : a.fullName}
+                  </Typography>
+                </TableCell>
+                <TableCell sx={{ borderBottom: 'none' }}>
+                  <svg
+                    viewBox={`0 0 ${BAR_WIDTH_MAX} ${BAR_HEIGHT}`}
+                    height={BAR_HEIGHT}
+                    width={BAR_WIDTH_MAX}
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect
+                      x={0}
+                      y={0}
+                      width={barWidth}
+                      height={BAR_HEIGHT}
+                      fill={
+                        theme.palette.primary[isHighlighted ? 'main' : 'light']
+                      }
+                    />
+                    <text
+                      className={clsx(styles.barText, {
+                        [styles.isInside]: textIsInside,
+                      })}
+                      x={textX}
+                      y={BAR_HEIGHT / 2}
+                      dy="0.35rem"
+                      textAnchor={textIsInside ? 'end' : 'start'}
+                    >
+                      {a.score}
+                    </text>
+                    <rect
+                      x={0}
+                      y={0}
+                      width={BAR_WIDTH_MAX}
+                      height={BAR_HEIGHT}
+                      fillOpacity={0}
+                      strokeWidth={1}
+                      stroke="black"
+                    />
+                  </svg>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     </div>
   );
 }
 
 function calculateCandidateScore(
-  data: Record<string, number>,
+  data: Record<string, string>,
   weightDict: WeightDict,
 ): number {
   let score = 0;
 
   Object.entries(weightDict).forEach(([issue, weight]) => {
+    // Get the candidate response. 1 means yes, 0 means no.
     const candidateDatum = data[issue];
-    score += candidateDatum * weight;
+    // If user's weight is positive, this means we want to factor in
+    // "yes" responses. Negative means "no" responses".
+    if (weight > 0) {
+      // Factor in "yes" responses to score.
+      if (candidateDatum === '1') {
+        score += weight;
+      }
+    } else if (weight < 0) {
+      // Factor in "no" responses to score.
+      if (candidateDatum === '0') {
+        score += -weight;
+      }
+    }
   });
 
   return score;
@@ -370,10 +445,10 @@ function getCandidateScore(
   weightDict: WeightDict,
   id: string,
 ): number {
-  const candidateDict = data.reduce<Record<string, number>>((prev, curr) => {
+  const candidateDict = data.reduce<Record<string, string>>((prev, curr) => {
     return {
       ...prev,
-      [curr.issue]: curr[id] === '1' ? 1 : 0,
+      [curr.issue]: curr[id],
     };
   }, {});
   return calculateCandidateScore(candidateDict, weightDict);
