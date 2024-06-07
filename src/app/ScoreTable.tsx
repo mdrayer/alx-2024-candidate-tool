@@ -18,8 +18,9 @@ import {
   Typography,
 } from '@mui/material';
 import clsx from 'clsx';
-import { ChangeEvent, MouseEvent, createElement, useState } from 'react';
+import { MouseEvent, createElement, useState } from 'react';
 import theme from '../theme';
+import NumberInput from './NumberInput';
 import styles from './ScoreTable.module.css';
 import {
   Issue,
@@ -53,11 +54,8 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
     return <div>ERROR</div>;
   }
 
-  const handleWeightChange = (
-    e: ChangeEvent<HTMLInputElement>,
-    issue: string,
-  ) => {
-    let num = Number(e.target.value);
+  const handleInputChange = (issue: string, value: number | null) => {
+    let num = Number(value === null ? 0 : value);
     // Ensure number is still within min-max range.
     num = Math.min(num, WEIGHT_MAX);
     num = Math.max(num, WEIGHT_MIN);
@@ -200,12 +198,11 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
-                    <input
+                    <NumberInput
+                      aria-label={`Weight for ${issue.title}`}
                       max={WEIGHT_MAX}
                       min={WEIGHT_MIN}
-                      onChange={e => handleWeightChange(e, row.issue)}
-                      step={1}
-                      type="number"
+                      onChange={(_, val) => handleInputChange(row.issue, val)}
                       value={weightDict[row.issue]}
                     />
                   </TableCell>
@@ -238,13 +235,7 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
               );
             })}
             <TableRow>
-              <TableCell
-                colSpan={2}
-                align="right"
-                component="th"
-                scope="row"
-                sx={{ maxWidth: ISSUE_COL_MAX_WIDTH }}
-              >
+              <TableCell colSpan={2} align="right" component="th" scope="row">
                 Score
               </TableCell>
               {[...mayoralCandidates, ...councilCandidates].map((a, i) => {
