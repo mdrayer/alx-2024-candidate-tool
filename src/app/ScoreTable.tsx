@@ -3,6 +3,8 @@
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import InfoIcon from '@mui/icons-material/Info';
 import {
+  Box,
+  Grid,
   IconButton,
   List,
   ListItem,
@@ -16,13 +18,13 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, createElement, useState } from 'react';
 import { councilCandidates, issuesDict, mayoralCandidates } from './data';
 import { CsvRow } from './models';
 
 type WeightDict = Record<string, number>;
 
-const WEIGHT_MIN = -10;
+const WEIGHT_MIN = 0;
 const WEIGHT_MAX = 10;
 const ISSUE_COL_MAX_WIDTH = '300px';
 
@@ -60,25 +62,53 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
     }));
   };
 
-  const mayoralScores = mayoralCandidates.map(m => {
-    return {
-      ...m,
-      score: getCandidateScore(data, weightDict, m.id),
-    };
-  });
-  const councilScores = councilCandidates.map(m => {
-    return {
-      ...m,
-      score: getCandidateScore(data, weightDict, m.id),
-    };
-  });
+  const mayoralScores = mayoralCandidates
+    .map(m => {
+      return {
+        ...m,
+        score: getCandidateScore(data, weightDict, m.id),
+      };
+    })
+    .sort((a, b) => (a.score > b.score ? -1 : b.score > a.score ? 1 : 0));
+  const shouldHighlight = !mayoralScores.every(
+    a => a.score === mayoralScores[0].score,
+  );
+  const councilScores = councilCandidates
+    .map(m => {
+      return {
+        ...m,
+        score: getCandidateScore(data, weightDict, m.id),
+      };
+    })
+    .sort((a, b) => (a.score > b.score ? -1 : b.score > a.score ? 1 : 0));
+
+  const scoresDict = [...mayoralScores, ...councilScores].reduce<
+    Record<string, number>
+  >(
+    (prev, curr) => ({
+      ...prev,
+      [curr.id]: curr.score,
+    }),
+    {},
+  );
+  const mayorHighlightScore = shouldHighlight
+    ? mayoralScores[0].score
+    : Infinity;
+  const councilHighlightScore = shouldHighlight
+    ? councilScores[5].score
+    : Infinity;
 
   return (
     <div>
       <Typography align="center" variant="h2">
         Weighted Scoring Table
       </Typography>
-      <TableContainer component={Paper}>
+      <Typography align="center" p={2}>
+        Description text on how to use the table. Ducimus aliquip luctus mollit
+        est adipiscing nisi integer, quos? Volutpat! Blandit illo! Perferendis
+        corrupti repudiandae, impedit justo corporis, blandit, ipsam.
+      </Typography>
+      <TableContainer component={Paper} sx={{ marginTop: 2 }}>
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -88,6 +118,9 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
                 sx={{ maxWidth: ISSUE_COL_MAX_WIDTH }}
               >
                 Issue
+              </TableCell>
+              <TableCell align="center" rowSpan={2}>
+                Weight
               </TableCell>
               <TableCell
                 align="center"
@@ -107,9 +140,6 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
                 scope="colgroup"
               >
                 City Council Candidates
-              </TableCell>
-              <TableCell align="center" rowSpan={2}>
-                Weight
               </TableCell>
             </TableRow>
             <TableRow>
@@ -155,6 +185,16 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
                       {issue.question}
                     </Typography>
                   </TableCell>
+                  <TableCell>
+                    <input
+                      max={WEIGHT_MAX}
+                      min={WEIGHT_MIN}
+                      onChange={e => handleWeightChange(e, row.issue)}
+                      step={1}
+                      type="number"
+                      value={weightDict[row.issue]}
+                    />
+                  </TableCell>
                   {[...mayoralCandidates, ...councilCandidates].map((m, i) => (
                     <TableCell
                       key={m.id}
@@ -178,88 +218,133 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
                       )}
                     </TableCell>
                   ))}
-                  <TableCell>
-                    <input
-                      max={WEIGHT_MAX}
-                      min={WEIGHT_MIN}
-                      onChange={e => handleWeightChange(e, row.issue)}
-                      step={1}
-                      type="number"
-                      value={weightDict[row.issue]}
-                    />
-                  </TableCell>
                 </TableRow>
               );
             })}
             <TableRow>
-              {columns.map((a, i) =>
-                i === 0 ? (
+              <TableCell
+                colSpan={2}
+                align="right"
+                component="th"
+                scope="row"
+                sx={{ maxWidth: ISSUE_COL_MAX_WIDTH }}
+              >
+                Score
+              </TableCell>
+              {mayoralCandidates.map((a, i) => {
+                return (
                   <TableCell
-                    key={a}
-                    align="right"
-                    component="th"
-                    scope="row"
-                    sx={{ maxWidth: ISSUE_COL_MAX_WIDTH }}
-                  >
-                    Score
-                  </TableCell>
-                ) : (
-                  <TableCell
-                    key={a}
+                    key={a.id}
                     align="center"
                     sx={{
-                      borderLeft: i === 1 ? 1 : undefined,
+                      borderBottom:
+                        i >= 0 && i <= mayoralCandidates.length - 1
+                          ? 1
+                          : undefined,
+                      borderLeft: i === 0 ? 1 : undefined,
                       borderRight:
-                        i === mayoralCandidates.length ? 1 : undefined,
+                        i === mayoralCandidates.length - 1 ? 1 : undefined,
                     }}
                   >
-                    {calculateCandidateScore(
-                      data.reduce<Record<string, number>>((prev, curr) => {
-                        return {
-                          ...prev,
-                          [curr.issue]: curr[a] === '1' ? 1 : 0,
-                        };
-                      }, {}),
-                      weightDict,
+                    {createElement(
+                      scoresDict[a.id] >= mayorHighlightScore
+                        ? 'strong'
+                        : 'span',
+                      {},
+                      calculateCandidateScore(
+                        data.reduce<Record<string, number>>((prev, curr) => {
+                          return {
+                            ...prev,
+                            [curr.issue]: curr[a.id] === '1' ? 1 : 0,
+                          };
+                        }, {}),
+                        weightDict,
+                      ),
                     )}
                   </TableCell>
-                ),
-              )}
-              <TableCell></TableCell>
+                );
+              })}
+              {councilCandidates.map(a => {
+                return (
+                  <TableCell key={a.id} align="center">
+                    {createElement(
+                      scoresDict[a.id] >= councilHighlightScore
+                        ? 'strong'
+                        : 'span',
+                      {},
+                      calculateCandidateScore(
+                        data.reduce<Record<string, number>>((prev, curr) => {
+                          return {
+                            ...prev,
+                            [curr.issue]: curr[a.id] === '1' ? 1 : 0,
+                          };
+                        }, {}),
+                        weightDict,
+                      ),
+                    )}
+                  </TableCell>
+                );
+              })}
             </TableRow>
           </TableBody>
         </Table>
       </TableContainer>
-      <div>
-        <Typography variant="h3">Mayor Scores</Typography>
-        <List component="ol" sx={{ listStyle: 'decimal', pl: 4 }} dense={true}>
-          {mayoralScores
-            .slice()
-            .sort((a, b) =>
-              a.score > b.score ? -1 : b.score > a.score ? 1 : 0,
-            )
-            .map(a => (
-              <ListItem key={a.id} sx={{ display: 'list-item' }}>
-                {a.fullName} - {a.score}
-              </ListItem>
-            ))}
-        </List>
-      </div>
-      <div>
-        <Typography variant="h3">City Council Scores</Typography>
-        <List component="ol" sx={{ listStyle: 'decimal', pl: 4 }} dense={true}>
-          {councilScores
-            .slice()
-            .sort((a, b) =>
-              a.score > b.score ? -1 : b.score > a.score ? 1 : 0,
-            )
-            .map(a => (
-              <ListItem key={a.id} sx={{ display: 'list-item' }}>
-                {a.fullName} - {a.score}
-              </ListItem>
-            ))}
-        </List>
-      </div>
+      <Grid container={true} spacing={2} sx={{ marginTop: 2 }}>
+        <Grid item={true} sm={6}>
+          <Box display="flex" justifyContent="center" alignItems="center">
+            <div>
+              <Typography variant="h3">Mayor Scores</Typography>
+              <List
+                component="ol"
+                sx={{ listStyle: 'decimal', pl: 4 }}
+                dense={true}
+              >
+                {mayoralScores.map(a => {
+                  const text = `${a.fullName} - ${a.score}`;
+                  return (
+                    <ListItem key={a.id} sx={{ display: 'list-item' }}>
+                      <Typography component="span">
+                        {scoresDict[a.id] >= mayorHighlightScore ? (
+                          <strong>{text}</strong>
+                        ) : (
+                          text
+                        )}
+                      </Typography>
+                    </ListItem>
+                  );
+                })}
+              </List>
+            </div>
+          </Box>
+        </Grid>
+        <Grid item={true} sm={6}>
+          <Box display="flex" justifyContent="center" alignItems="center">
+            <div>
+              <Typography variant="h3">City Council Scores</Typography>
+              <List
+                component="ol"
+                sx={{ listStyle: 'decimal', pl: 4 }}
+                dense={true}
+              >
+                {councilScores.map(a => {
+                  const text = `${a.fullName} - ${a.score}`;
+                  return (
+                    <ListItem key={a.id} sx={{ display: 'list-item' }}>
+                      <Typography component="span">
+                        {scoresDict[a.id] >= councilHighlightScore ? (
+                          <strong>{text}</strong>
+                        ) : (
+                          text
+                        )}
+                      </Typography>
+                    </ListItem>
+                  );
+                })}
+              </List>
+            </div>
+          </Box>
+        </Grid>
+      </Grid>
     </div>
   );
 }

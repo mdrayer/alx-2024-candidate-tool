@@ -1,8 +1,7 @@
-import { List, ListItem, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 import { csvParse } from 'd3-dsv';
 import { promises as fs } from 'fs';
 import ScoreTable from './ScoreTable';
-import { councilCandidates, mayoralCandidates } from './data';
 import { CsvRow } from './models';
 import styles from './page.module.css';
 
@@ -14,15 +13,19 @@ export default async function Home() {
   const data = csvParse(file);
   return (
     <main className={styles.main}>
-      <Typography variant="h1">Alexandria Candidates 2024</Typography>
-      <Typography>
+      <Typography align="center" variant="h1">
+        Alexandria Candidates 2024
+      </Typography>
+      <Typography align="center" variant="body2" p={2}>
         Data from{' '}
         <a href={waPoArticle} target="_blank">
-          {waPoArticle}
-        </a>
-        .
+          &quot;A guide to the 2024 Alexandria Democratic primary election&quot;
+          article
+        </a>{' '}
+        by Teo Armus in the Washington Post, published on May 4, 2024.
       </Typography>
-      <Typography variant="h2">Mayoral Candidates</Typography>
+
+      {/* <Typography variant="h2">Mayoral Candidates</Typography>
       <List dense={true}>
         {mayoralCandidates.map(a => (
           <ListItem key={a.id}>
@@ -37,7 +40,7 @@ export default async function Home() {
             <Typography component="span">{a.fullName}</Typography>
           </ListItem>
         ))}
-      </List>
+      </List> */}
 
       <ScoreTable columns={data.columns} data={data as unknown as CsvRow[]} />
     </main>

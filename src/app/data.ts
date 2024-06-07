@@ -10,13 +10,12 @@ interface Issue {
 const issuesArr: Issue[] = [
   {
     title: 'Pace of housing development',
-    question:
-      'Is Alexandria building new housing too quickly or not quickly enough?',
+    question: 'Is Alexandria building new housing not quickly enough?',
     description:
       'While Alexandria is ahead of the housing production goals set in coordination with other local governments, the city has also lost thousands of units of affordable housing. Many advocates say construction needs to pick up, while others worry about overwhelming the city’s small-town character. Is Alexandria building new housing too quickly or not quickly enough?',
     id: 'pacing_too_quick',
-    labelNo: 'Not quickly enough',
-    labelYes: 'Too quickly',
+    labelNo: 'Too quickly',
+    labelYes: 'Not quickly enough',
   },
   {
     title: 'Government structure',
