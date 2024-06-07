@@ -7,6 +7,7 @@ import {
   Grid,
   IconButton,
   Paper,
+  Popover,
   Table,
   TableBody,
   TableCell,
@@ -17,7 +18,7 @@ import {
   Typography,
 } from '@mui/material';
 import clsx from 'clsx';
-import { ChangeEvent, createElement, useState } from 'react';
+import { ChangeEvent, MouseEvent, createElement, useState } from 'react';
 import theme from '../theme';
 import styles from './ScoreTable.module.css';
 import {
@@ -124,10 +125,7 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
         Leaving the weight at 0 means that the issue will have no effect on the
         score.
       </Typography>
-      <TableContainer
-        component={Paper}
-        sx={{ marginTop: 2, maxHeight: '100vh' }}
-      >
+      <TableContainer component={Paper} sx={{ maxHeight: '100vh' }}>
         <Table size="small" stickyHeader={true}>
           <TableHead>
             <TableRow>
@@ -230,9 +228,9 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
                           </IconButton>
                         </Tooltip>
                       ) : (
-                        <span className={styles['visually-hidden']}>
+                        <Typography component="span" sx={{ display: 'none' }}>
                           {issue.labelNo || 'No'}
-                        </span>
+                        </Typography>
                       )}
                     </TableCell>
                   ))}
@@ -321,12 +319,36 @@ interface IssuePopupProps {
   issue: Issue;
 }
 function IssuePopup({ issue }: IssuePopupProps): JSX.Element {
+  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const open = Boolean(anchorEl);
+  const id = open ? `${issue.id}-popover` : undefined;
+
   return (
-    <Tooltip title={issue.description}>
-      <IconButton>
+    <span>
+      <IconButton onClick={handleClick} title="More information on this issue">
         <InfoIcon color="info" />
       </IconButton>
-    </Tooltip>
+      <Popover
+        id={id}
+        open={open}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+        sx={{ maxWidth: 450 }}
+      >
+        <Typography sx={{ p: 2 }}>{issue.description}</Typography>
+      </Popover>
+    </span>
   );
 }
 
@@ -349,67 +371,76 @@ function ScoresDisplay({
       <Typography align="center" variant="h3">
         {label}
       </Typography>
-      <Table size="small">
-        <TableBody>
-          {scores.map(a => {
-            const pct = total > 0 ? a.score / total : 0;
-            const isHighlighted = a.score >= scoreThreshold;
-            const barWidth = pct * BAR_WIDTH_MAX;
-            const textIsInside = barWidth > 20;
-            const textX = textIsInside ? barWidth - 4 : barWidth + 4;
-            return (
-              <TableRow key={a.id}>
-                <TableCell
-                  align="right"
-                  sx={{ borderBottom: 'none', width: 200 }}
-                >
-                  <Typography component="span">
-                    {isHighlighted ? <strong>{a.fullName}</strong> : a.fullName}
-                  </Typography>
-                </TableCell>
-                <TableCell sx={{ borderBottom: 'none' }}>
-                  <svg
-                    viewBox={`0 0 ${BAR_WIDTH_MAX} ${BAR_HEIGHT}`}
-                    height={BAR_HEIGHT}
-                    width={BAR_WIDTH_MAX}
-                    xmlns="http://www.w3.org/2000/svg"
+      <TableContainer>
+        <Table size="small">
+          <TableBody>
+            {scores.map(a => {
+              const pct = total > 0 ? a.score / total : 0;
+              const isHighlighted = a.score >= scoreThreshold;
+              const barWidth = pct * BAR_WIDTH_MAX;
+              const textIsInside = barWidth > 20;
+              const textX = textIsInside ? barWidth - 4 : barWidth + 4;
+              return (
+                <TableRow key={a.id}>
+                  <TableCell
+                    align="right"
+                    sx={{ borderBottom: 'none', width: 200 }}
                   >
-                    <rect
-                      x={0}
-                      y={0}
-                      width={barWidth}
+                    <Typography component="span">
+                      {isHighlighted ? (
+                        <strong>{a.fullName}</strong>
+                      ) : (
+                        a.fullName
+                      )}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ borderBottom: 'none' }}>
+                    <svg
+                      viewBox={`0 0 ${BAR_WIDTH_MAX} ${BAR_HEIGHT}`}
                       height={BAR_HEIGHT}
-                      fill={
-                        theme.palette.primary[isHighlighted ? 'main' : 'light']
-                      }
-                    />
-                    <text
-                      className={clsx(styles.barText, {
-                        [styles.isInside]: textIsInside,
-                      })}
-                      x={textX}
-                      y={BAR_HEIGHT / 2}
-                      dy="0.35rem"
-                      textAnchor={textIsInside ? 'end' : 'start'}
-                    >
-                      {a.score}
-                    </text>
-                    <rect
-                      x={0}
-                      y={0}
                       width={BAR_WIDTH_MAX}
-                      height={BAR_HEIGHT}
-                      fillOpacity={0}
-                      strokeWidth={1}
-                      stroke="black"
-                    />
-                  </svg>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <rect
+                        x={0}
+                        y={0}
+                        width={barWidth}
+                        height={BAR_HEIGHT}
+                        fill={
+                          theme.palette.primary[
+                            isHighlighted ? 'main' : 'light'
+                          ]
+                        }
+                      />
+                      <text
+                        className={clsx(styles.barText, {
+                          [styles.isInside]: textIsInside,
+                          [styles.isHighlighted]: isHighlighted,
+                        })}
+                        x={textX}
+                        y={BAR_HEIGHT / 2}
+                        dy="0.35rem"
+                        textAnchor={textIsInside ? 'end' : 'start'}
+                      >
+                        {a.score}
+                      </text>
+                      <rect
+                        x={0}
+                        y={0}
+                        width={BAR_WIDTH_MAX}
+                        height={BAR_HEIGHT}
+                        fillOpacity={0}
+                        strokeWidth={1}
+                        stroke="black"
+                      />
+                    </svg>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </div>
   );
 }
