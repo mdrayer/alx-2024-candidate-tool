@@ -1,8 +1,8 @@
+import { List, ListItem, Typography } from '@mui/material';
 import { csvParse } from 'd3-dsv';
 import { promises as fs } from 'fs';
-import { Fragment } from 'react';
 import ScoreTable from './ScoreTable';
-import { councilCandidates, issuesArr, mayoralCandidates } from './data';
+import { councilCandidates, mayoralCandidates } from './data';
 import { CsvRow } from './models';
 import styles from './page.module.css';
 
@@ -14,37 +14,32 @@ export default async function Home() {
   const data = csvParse(file);
   return (
     <main className={styles.main}>
-      <h1>Alexandria Candidates 2024</h1>
-      <p>
+      <Typography variant="h1">Alexandria Candidates 2024</Typography>
+      <Typography>
         Data from{' '}
         <a href={waPoArticle} target="_blank">
           {waPoArticle}
         </a>
         .
-      </p>
-      <h2>Mayoral Candidates</h2>
-      <ul>
+      </Typography>
+      <Typography variant="h2">Mayoral Candidates</Typography>
+      <List dense={true}>
         {mayoralCandidates.map(a => (
-          <li key={a.id}>{a.fullName}</li>
+          <ListItem key={a.id}>
+            <Typography component="span">{a.fullName}</Typography>
+          </ListItem>
         ))}
-      </ul>
-      <h2>City Council Candidates</h2>
-      <ul>
+      </List>
+      <Typography variant="h2">City Council Candidates</Typography>
+      <List dense={true}>
         {councilCandidates.map(a => (
-          <li key={a.id}>{a.fullName}</li>
+          <ListItem key={a.id}>
+            <Typography component="span">{a.fullName}</Typography>
+          </ListItem>
         ))}
-      </ul>
+      </List>
 
-      <h2>Personal Scoring Table</h2>
       <ScoreTable columns={data.columns} data={data as unknown as CsvRow[]} />
-
-      <h2>Issues</h2>
-      {issuesArr.map(issue => (
-        <Fragment key={issue.id}>
-          <h3>{issue.title}</h3>
-          <p>{issue.description}</p>
-        </Fragment>
-      ))}
     </main>
   );
 }

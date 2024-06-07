@@ -60,13 +60,3 @@ h6 {
 #__next {
   isolation: isolate;
 }
-
-table {
-  border-collapse: collapse;
-}
-
-th,
-td {
-  border: 1px black solid;
-  padding: 5px;
-}

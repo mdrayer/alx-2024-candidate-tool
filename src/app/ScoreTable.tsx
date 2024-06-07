@@ -1,5 +1,21 @@
 'use client';
 
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import InfoIcon from '@mui/icons-material/Info';
+import {
+  IconButton,
+  List,
+  ListItem,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import { ChangeEvent, useState } from 'react';
 import { councilCandidates, issuesDict, mayoralCandidates } from './data';
 import { CsvRow } from './models';
@@ -8,6 +24,7 @@ type WeightDict = Record<string, number>;
 
 const WEIGHT_MIN = -10;
 const WEIGHT_MAX = 10;
+const ISSUE_COL_MAX_WIDTH = '300px';
 
 interface ScoreTableProps {
   columns: string[];
@@ -58,101 +75,190 @@ function ScoreTable({ columns, data }: ScoreTableProps): JSX.Element {
 
   return (
     <div>
-      <table>
-        <thead>
-          <tr>
-            <th rowSpan={2}>Issue</th>
-            <th colSpan={mayoralCandidates.length}>Mayoral Candidates</th>
-            <th colSpan={councilCandidates.length}>City Council Candidates</th>
-            <th rowSpan={2}>Weight</th>
-          </tr>
-          <tr>
-            {mayoralCandidates.map(m => (
-              <th key={m.id}>{m.lastName}</th>
-            ))}
-            {councilCandidates.map(c => (
-              <th key={c.id}>{c.lastName}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map(row => {
-            const issue = issuesDict[row.issue];
-            return (
-              <tr key={row.issue}>
-                <th>{issue.title}</th>
-                {mayoralCandidates.map(m => (
-                  <td key={m.id}>{row[m.id] === '1' ? 'X' : ''}</td>
-                ))}
-                {councilCandidates.map(m => (
-                  <td key={m.id}>{row[m.id] === '1' ? 'X' : ''}</td>
-                ))}
-                <td>
-                  <input
-                    max={WEIGHT_MAX}
-                    min={WEIGHT_MIN}
-                    onChange={e => handleWeightChange(e, row.issue)}
-                    step={1}
-                    type="number"
-                    value={weightDict[row.issue]}
-                  />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-        <tfoot>
-          <tr>
-            {columns.map((a, i) =>
-              i === 0 ? (
-                <th key={a}>Score</th>
-              ) : (
-                <td key={a}>
-                  {calculateCandidateScore(
-                    data.reduce<Record<string, number>>((prev, curr) => {
-                      return {
-                        ...prev,
-                        [curr.issue]: curr[a] === '1' ? 1 : 0,
-                      };
-                    }, {}),
-                    weightDict,
-                  )}
-                </td>
-              ),
-            )}
-            <td></td>
-          </tr>
-        </tfoot>
-      </table>
+      <Typography align="center" variant="h2">
+        Weighted Scoring Table
+      </Typography>
+      <TableContainer component={Paper}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell
+                align="center"
+                rowSpan={2}
+                sx={{ maxWidth: ISSUE_COL_MAX_WIDTH }}
+              >
+                Issue
+              </TableCell>
+              <TableCell
+                align="center"
+                colSpan={mayoralCandidates.length}
+                scope="colgroup"
+                sx={{
+                  borderLeft: 1,
+                  borderRight: 1,
+                  borderTop: 1,
+                }}
+              >
+                Mayoral Candidates
+              </TableCell>
+              <TableCell
+                align="center"
+                colSpan={councilCandidates.length}
+                scope="colgroup"
+              >
+                City Council Candidates
+              </TableCell>
+              <TableCell align="center" rowSpan={2}>
+                Weight
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              {mayoralCandidates.map((m, i) => (
+                <TableCell
+                  key={m.id}
+                  align="center"
+                  sx={{
+                    borderLeft: i === 0 ? 1 : undefined,
+                    borderRight:
+                      i === mayoralCandidates.length - 1 ? 1 : undefined,
+                  }}
+                >
+                  {m.lastName}
+                </TableCell>
+              ))}
+              {councilCandidates.map(c => (
+                <TableCell key={c.id} align="center">
+                  {c.lastName}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {data.map(row => {
+              const issue = issuesDict[row.issue];
+              return (
+                <TableRow key={row.issue}>
+                  <TableCell
+                    component="th"
+                    scope="row"
+                    sx={{ maxWidth: ISSUE_COL_MAX_WIDTH }}
+                  >
+                    <Typography>
+                      <Tooltip title={issue.description}>
+                        <IconButton>
+                          <InfoIcon color="info" />
+                        </IconButton>
+                      </Tooltip>
+                      {issue.title}
+                    </Typography>
+                    <Typography fontSize="0.75rem" variant="body2">
+                      {issue.question}
+                    </Typography>
+                  </TableCell>
+                  {[...mayoralCandidates, ...councilCandidates].map((m, i) => (
+                    <TableCell
+                      key={m.id}
+                      align="center"
+                      sx={{
+                        borderLeft: i === 0 ? 1 : undefined,
+                        borderRight:
+                          i === mayoralCandidates.length - 1 ? 1 : undefined,
+                      }}
+                    >
+                      {row[m.id] === '1' ? (
+                        <Tooltip
+                          title={`${m.fullName} - ${issue.labelYes || 'Yes'}`}
+                        >
+                          <IconButton>
+                            <CheckCircleOutlineIcon color="success" />
+                          </IconButton>
+                        </Tooltip>
+                      ) : (
+                        ''
+                      )}
+                    </TableCell>
+                  ))}
+                  <TableCell>
+                    <input
+                      max={WEIGHT_MAX}
+                      min={WEIGHT_MIN}
+                      onChange={e => handleWeightChange(e, row.issue)}
+                      step={1}
+                      type="number"
+                      value={weightDict[row.issue]}
+                    />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            <TableRow>
+              {columns.map((a, i) =>
+                i === 0 ? (
+                  <TableCell
+                    key={a}
+                    align="right"
+                    component="th"
+                    scope="row"
+                    sx={{ maxWidth: ISSUE_COL_MAX_WIDTH }}
+                  >
+                    Score
+                  </TableCell>
+                ) : (
+                  <TableCell
+                    key={a}
+                    align="center"
+                    sx={{
+                      borderLeft: i === 1 ? 1 : undefined,
+                      borderRight:
+                        i === mayoralCandidates.length ? 1 : undefined,
+                    }}
+                  >
+                    {calculateCandidateScore(
+                      data.reduce<Record<string, number>>((prev, curr) => {
+                        return {
+                          ...prev,
+                          [curr.issue]: curr[a] === '1' ? 1 : 0,
+                        };
+                      }, {}),
+                      weightDict,
+                    )}
+                  </TableCell>
+                ),
+              )}
+              <TableCell></TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </TableContainer>
       <div>
-        Mayor Scores:
-        <ol>
+        <Typography variant="h3">Mayor Scores</Typography>
+        <List component="ol" sx={{ listStyle: 'decimal', pl: 4 }} dense={true}>
           {mayoralScores
             .slice()
             .sort((a, b) =>
               a.score > b.score ? -1 : b.score > a.score ? 1 : 0,
             )
             .map(a => (
-              <li key={a.id}>
+              <ListItem key={a.id} sx={{ display: 'list-item' }}>
                 {a.fullName} - {a.score}
-              </li>
+              </ListItem>
             ))}
-        </ol>
+        </List>
       </div>
       <div>
-        City Council Scores:
-        <ol>
+        <Typography variant="h3">City Council Scores</Typography>
+        <List component="ol" sx={{ listStyle: 'decimal', pl: 4 }} dense={true}>
           {councilScores
             .slice()
             .sort((a, b) =>
               a.score > b.score ? -1 : b.score > a.score ? 1 : 0,
             )
             .map(a => (
-              <li key={a.id}>
+              <ListItem key={a.id} sx={{ display: 'list-item' }}>
                 {a.fullName} - {a.score}
-              </li>
+              </ListItem>
             ))}
-        </ol>
+        </List>
       </div>
     </div>
   );
