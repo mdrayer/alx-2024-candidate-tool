@@ -1,6 +1,8 @@
 import { Typography } from '@mui/material';
 import { csvParse } from 'd3-dsv';
 import { promises as fs } from 'fs';
+import CandidateResponseTable from './CandidateResponseTable';
+import IssueForm from './IssueForm';
 import ScoreTable from './ScoreTable';
 import { CsvRow } from './models';
 import styles from './page.module.css';
@@ -29,7 +31,9 @@ export default async function Home() {
         by Teo Armus in the Washington Post, published on May 4, 2024.
       </Typography>
 
+      <IssueForm />
       <ScoreTable columns={data.columns} data={data as unknown as CsvRow[]} />
+      <CandidateResponseTable data={data as unknown as CsvRow[]} />
     </main>
   );
 }

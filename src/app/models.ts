@@ -3,4 +3,6 @@ interface CsvRow {
   [candidate: string]: string;
 }
 
-export type { CsvRow };
+type WeightDictionary = Record<string, number>;
+
+export type { CsvRow, WeightDictionary };

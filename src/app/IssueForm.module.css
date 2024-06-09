@@ -1,0 +1,6 @@
+.markLabel {
+  font-size: 0.75rem !important;
+  max-width: 55px;
+  text-align: center;
+  white-space: pre-line !important;
+}

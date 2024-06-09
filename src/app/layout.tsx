@@ -2,6 +2,7 @@ import { CssBaseline, ThemeProvider } from '@mui/material';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v13-appRouter';
 import type { Metadata } from 'next';
 import theme from '../theme';
+import { DataContextProvider } from './DataContext';
 import Footer from './Footer';
 import './globals.css';
 
@@ -22,7 +23,7 @@ export default function RootLayout({
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            {children}
+            <DataContextProvider>{children}</DataContextProvider>
             <Footer />
           </ThemeProvider>
         </AppRouterCacheProvider>
